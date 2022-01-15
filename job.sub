@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Aquest scrip reserva un node amb una GPU GeForceRTX3080 per compilar
+# i executar el vostre programa C + OpebACC o C + CUDA.
+# Depenent de quin tipus de programa volgueu compilar, heu de descomentar
+# una de les comandes de compilació incloses més avall (deixeu les altres
+# dues comentades).
+# Arguments: $1 = nom del artxiu amb el codi font, $2 = "-prof" si
+# voleu obtenir informació detallada sobre l'execució del programa
+# (temps de moviment de dades i execució de cada kernel, distribució
+#  dels threads, etc.)
+#
+#SBATCH --job-name=GPU
+#SBATCH -N 1 # number of nodes
+#SBATCH --partition=cuda.q
+#SBATCH --gres=gpu:GeForceRTX3080:1
+
+module add cuda/11.2
+module load nvidia-hpc-sdk/21.2
+
+#Descomenteu aquesta línia per compilar un programa C + OpenACC per GPU
+nvc -acc=gpu -ta=tesla -Minfo=all -o executable $1
+
+#Descomenteu aquesta línia per compilar un programa C + OpenACC per CPU
+#nvc -Minfo=all -o executable $1
+
+#Descomenteu aquesta línia per compilar un programa C + CUD
+#nvcc -arch=compute_60 -o executable $1 -lm
+
+if [ "$2" = "-prof" ]; then
+	echo "Nvidia profiler"
+	pgaccelinfo
+	nsys nvprof --print-gpu-trace ./executable
+else
+	./executable
+fi
